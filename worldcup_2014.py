@@ -50,7 +50,7 @@ n_buckets = 6
 rho = 0.5
 bucket_per_gd = 1
 
-qualification_matches = data_2014.qualifications()
+qualification_matches = [m for m in data_2014.qualifications()]
 qualification_teams = data_2014.qualification_teams()
 n_people = len(qualification_teams)
 model_history = Model_base(n_people, n_buckets, s_max=floor((2*n_buckets+1)/bucket_per_gd)+1, options={'rho': rho, 'bucket_per_gd': bucket_per_gd} )

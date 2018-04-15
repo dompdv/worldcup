@@ -73,6 +73,7 @@ n_people = len(teams)
 probabilities = {qualification_teams[i] : prob for i,prob in enumerate(model_history.probabilities) if qualification_teams[i] in teams}
 
 
+
 model = Model_base(n_people, n_buckets, s_max=floor((2*n_buckets+1)/bucket_per_gd)+1, options={'rho': rho, 'bucket_per_gd': bucket_per_gd} )
 # récupère les etats historiques
 model.probabilities = [probabilities[teams[i]] for i in range(len(model.probabilities))]
@@ -85,4 +86,3 @@ ps = model.proba_score(14,19)
 print_p(ps)
 
 #fire_once(model,teams, groups, matches, match_codes, given)
-

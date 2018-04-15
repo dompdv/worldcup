@@ -48,13 +48,15 @@ class Model_base:
             for s in range(-self.s_max, self.s_max + 1)
         }
 
-    def print(self, teams):
+    def print(self, teams, keep=set()):
         print("Team          ", end="")
         print("  #  ", end="")
         for bucket in range(-self.n_buckets, self.n_buckets + 1):
             print("{0:^4} | ".format(bucket), end='')
         print()
         for people in range(self.n_people):
+            if len(keep)>0 and people not in keep:
+                continue
             total = 0
             average = 0
             print("{0:^14}".format(teams[people]), end="")
@@ -98,6 +100,14 @@ class Model_base:
         self.update_stats()
 
 
+def print_p(proba, threshold=0.02):
+    print("Probabilities by score")
+    [print("{:^5d}|".format(i), end='') for i,p in proba.items() if p>threshold]
+    print()
+    [print("{:^5.0f}|".format(p * 100), end='') for i,p in proba.items() if p>threshold]
+    print()
+
+
 def ordered_match(n_people):
     return [ (user_1, user_2, 1 if user_1>user_2 else -1) for user_1 in range(n_people) for user_2 in range(n_people) if user_1 != user_2]
 
@@ -107,7 +117,7 @@ def partial_ordered_match(n_people):
 n_people = 20
 n_buckets = 6
 
-model = Model_base(n_people, n_buckets, s_max=2*n_buckets+1, options={'rho':0.6} )
+model = Model_base(n_people, n_buckets, s_max=2*n_buckets+1, options={'rho':0.50} )
 '''
 matches = [(0,1, 1), (0,2, 1), (1,2, 1), (1,2, 1), (1,2, 1) ]
 matches = ordered_match(n_people)
@@ -116,16 +126,28 @@ matches = [(0,1, 1), (0,2, 1), (1,2, 1), (1,2, 1), (1,2, 1) ]
 import matches_ligue1
 matches = matches_ligue1.matches()
 teams = matches_ligue1.team()
-model.print(teams)
+#model.print(teams)
+filtered = set()
 for i, match in enumerate(matches):
-    print(i, match)
-    l1,l2,score = match
-    model.account_for((l1, l2, score)),
-    model.print(teams)
-
+    l1, l2, score = match
+    if len(filtered) > 0:
+        display_list = filtered.copy()
+        display_list.add(l1)
+        display_list.add(l2)
+        if l1 in filtered or l2 in filtered:
+            print(i, match)
+            print("Before")
+            model.print(teams, keep=display_list)
+            model.account_for((l1, l2, score))
+            print("After")
+            model.print(teams, keep=display_list)
+    else:
+        print(i, match)
+        model.account_for((l1, l2, score))
+        model.print(teams)
+        print(model.mean)
 
 ps = model.proba_score(14,14)
-print(ps)
-print(sum(ps.values()))
-print(model.proba_score(14,19))
-print(model.proba_score(19,14))
+print_p(ps)
+print_p(model.proba_score(14,19))
+print_p(model.proba_score(3,17))

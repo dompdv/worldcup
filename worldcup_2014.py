@@ -1,17 +1,54 @@
 from math import sqrt, floor
+import operator
 import data_2014
 from model_base import Model_base, print_p, draw_ps
+import random
+import collections
 
+def fire_once(model,teams, groups, matches, match_codes, given, printing=False):
+    # Calcule le match suivant après les pools
+    def find_next_match(code, results, team_group_score):
+        def group_winner(group, position):
+            def order_teams(t):
+                return (t[1]['points'], t[1]['gd'])
+            g_scores = {team: team_group_score[team] for team in groups[group]}
+            sorted_g = sorted(g_scores.items(), key=order_teams)
+            team, _ = sorted_g[-position]
+            return team
 
-def fire_once(model,teams, groups, matches, match_codes, given):
+        def match_winner(result):
+            return result['team1'] if result['gd'] > 0 else result['team2']
+
+        def match_loser(result):
+            return result['team2'] if result['gd'] > 0 else result['team1']
+
+        if code[0] == "8":
+            team1, team2 = group_winner(code[1],1), group_winner(code[2], 2)
+
+        if code[0] == "4":
+            team1, team2 = match_winner(results["8" + code[1:3]]), match_winner(results["8" + code[3:]])
+
+        if code[0] == "2":
+            team1, team2 = match_winner(results["4" + code[1:5]]), match_winner(results["4" + code[5:]])
+
+        if code == "1":
+            team1, team2 = match_winner(results["2ABCDDCBA"]), match_winner(results["2EFGHFEHG"])
+
+        if code == "1M":
+            team1, team2 = match_loser(results["2ABCDDCBA"]), match_loser(results["2EFGHFEHG"])
+        return team1, team2
+
+    given = {}
     numbered_teams ={ team:number for number,team in enumerate(teams)}
-    results = []
+    team_group_score = { team: {'points': 0, 'gd': 0} for team in teams}
+    results = {}
     for match in matches:
         code = match['match']
-        m = {'date': match['date'], 'match': code}
-        print(m)
+        pool = ord(code[0]) > 64
+        m = {'date': match['date'], 'match': code, 'pool': pool, 'ending':'std'}
         if code in given:
             print("given")
+            m['given'] = True
             m['gd'] = match['gd']
             m['team1'] = match['team1']
             m['team2'] = match['team2']
@@ -19,8 +56,59 @@ def fire_once(model,teams, groups, matches, match_codes, given):
             team2 = numbered_teams[m['team2']]
             score = m['gd']
             model.account_for((team1, team2, score))
+        else:
+            m['given'] = False
+            # Determination des équipes
+            if pool:
+                m['team1'] = match['team1']
+                m['team2'] = match['team2']
+            else:
+                m['team1'], m['team2'] = find_next_match(code, results, team_group_score)
+
+            team1 = numbered_teams[m['team1']]
+            team2 = numbered_teams[m['team2']]
+            # Determination du score
+            proba = model.proba_score(team1, team2)
+            m['proba'] = proba
+            # Randomly choose an outcome
+            #tirages = [draw_ps(proba) for _ in range(10000)]
+            #print(collections.Counter(tirages))
+            score = draw_ps(proba)
+            if score == 0 and not pool:
+                # Pas de nul possible après les Pools, on relance
+                m['ending'] = 'prolong'
+                score = draw_ps(proba)
+                # Penalty : 1 chance sur 2
+                if score == 0:
+                    m['ending'] = 'penalties'
+                    score = random.choice([-1,1])
+            m['gd'] = score
+            model.account_for((team1, team2, score))
+        if score > 0:
+            m['winner'] = m['team1']
+        elif score < 0:
+            m['winner'] = m['team2']
+        else:
+            m['winner'] = None
+        # Gestion des points la phase Pool
+        if pool:
+            if score > 0:
+                team_group_score[m['team1']]['points'] += 3
+                team_group_score[m['team1']]['gd'] += score
+            elif score == 0:
+                team_group_score[m['team1']]['points'] += 1
+                team_group_score[m['team2']]['points'] += 1
+            else:
+                team_group_score[m['team2']]['points'] += 3
+                team_group_score[m['team2']]['gd'] += (-score)
+            m['team1_score'] = team_group_score[m['team1']]['points']
+            m['team2_score'] = team_group_score[m['team2']]['points']
+        if printing:
+            print(m)
             model.print(teams)
-        pool = ord(code[0]) < 65
+
+        results[code] = m
+    return results, team_group_score
 
 def account_for_history(model, matches, teams):
     numbered_teams ={ team:number for number,team in enumerate(teams)}
@@ -60,7 +148,22 @@ elo_scores = data_2014.elo_scores()
 # Ai calculé que 500 points correspondent à 3 points d'ecart au total
 max_elo_score = max(elo_scores.values())
 min_elo_score = min(elo_scores.values())
-delte_elo = max_elo_score - min_elo_score
+delta_elo = max_elo_score - min_elo_score
+mean_elo = (max_elo_score + min_elo_score) / 2.0
+# On repositionne linéirement les Ecarts en fonction du ELO
+elo_scores = {k: (v - mean_elo) * 2.5 / 500 for k,v in elo_scores.items()}
+
+def elo_function(avg, x):
+    return 0.1 ** (abs(x-avg))
+#Calage des probabilités en fonction des ELOs
+probabilities = {}
+for team in elo_scores.keys():
+    avg = elo_scores[team]
+    proba = {k: (elo_function(avg, k-0.5) + elo_function(avg, k+0.5))/2.0 for k in range(-n_buckets, n_buckets+1)}
+    s = sum(proba.values())
+    proba = {k:v/s for k,v in proba.items()}
+    probabilities[team] = proba
+
 
 
 model = Model_base(n_people, n_buckets, s_max=floor((2*n_buckets+1)/bucket_per_gd)+1, options={'rho': rho, 'bucket_per_gd': bucket_per_gd} )
@@ -69,9 +172,43 @@ model.probabilities = [probabilities[teams[i]] for i in range(len(model.probabil
 model.update_stats()
 model.adjust_mean()
 model.print(teams)
-print(model.mean)
 
-ps = model.proba_score(14,19)
-print_p(ps)
+probabilities = model.probabilities.copy()
 
-#fire_once(model,teams, groups, matches, match_codes, given)
+team_score = {team: 0 for team in teams}
+
+def print_results(results, matches, groups, teams, team_group_score):
+    print("Date       |    Code    | Pool | Team1             | Team2             | Score | Winner             |")
+    for m in matches:
+        code = m['match']
+        match = results[code]
+        gd = match['gd']
+        team1 = match['team1']
+        team2 = match['team2']
+        winner = ''
+        if not match['pool']:
+            winner = team1 if gd>0 else team2
+        print("{:^11}|{:^12}|{:^6}|{:^19}|{:^19}|{:^7}|{:^19}".format(
+            m['date'], code, match['pool'], team1, team2, gd, winner)
+        )
+    print()
+
+
+for _ in range(5):
+    model.probabilities = probabilities.copy()
+    model.update_stats()
+    results, team_group_score = fire_once(model,teams, groups, matches, match_codes, given)
+    print("Results")
+    team1, team2 = results["1"]['team1'], results["1"]['team2']
+    gd = results["1"]['gd']
+    winner = team1 if gd>0 else team2
+    print("Finale {} / {} : {} Winner {}".format(team1, team2, gd, winner))
+    print_results(results, matches, groups, teams, team_group_score)
+    model.print(teams)
+    team_score[winner] += 1
+
+[print(t,v) for t,v in team_score.items()]
+
+print()
+
+

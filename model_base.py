@@ -15,7 +15,7 @@ class Model_base:
     def compute_probability_function(self, n_buckets, s_max, options):
         rho = options['rho']
         bpgd= options['bucket_per_gd']
-        triplet = {(l1, l2,s): max(rho ** abs((l1 - l2)/bpgd - s), 0.01)
+        triplet = {(l1, l2,s): max(rho ** abs((l1 - l2)/bpgd - s), 0.0000001) if abs(l1 - l2 - s) < 7 else 0.0000001
                    for l1 in range(-n_buckets, n_buckets + 1)
                    for l2 in range(-n_buckets, n_buckets + 1)
                    for s in range(-s_max, s_max + 1)}
@@ -30,7 +30,7 @@ class Model_base:
 
     def proba_win(self, level_user1, level_user2, score):
         if abs(score) > self.s_max:
-            return 0.005
+            return 0.00001
         return self.proba_win_function[level_user1, level_user2, score]
 
     def update_stats(self):
@@ -76,6 +76,7 @@ class Model_base:
             print("{0:^4.1f} | ".format(total), end='')
             print("{0:^4.1f} | ".format(average), end='')
             print()
+        print("Mean {:.2f}".format(self.mean))
 
     def write_csv(self, filename, min_number):
         with open(filename, 'w', newline='') as csvfile:

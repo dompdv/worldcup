@@ -90,7 +90,6 @@ def groups():
             groups[r['group']].add(r['team2'])
     return groups
 
-
 def elo_scores():
     return {
         'Brazil': 2138,

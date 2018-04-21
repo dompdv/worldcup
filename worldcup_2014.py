@@ -37,8 +37,12 @@ def fire_once(model,teams, groups, matches, match_codes, given, printing=False):
         if code == "1M":
             team1, team2 = match_loser(results["2ABCDDCBA"]), match_loser(results["2EFGHFEHG"])
         return team1, team2
-
-    given = {}
+    # garde tous les matchs de pool
+    for c in list(given.keys()):
+        pool = ord(c[0]) > 64
+        if not pool:
+            del given[c]
+    #given = {}
     numbered_teams ={ team:number for number,team in enumerate(teams)}
     team_group_score = { team: {'points': 0, 'gd': 0} for team in teams}
     results = {}
@@ -47,7 +51,6 @@ def fire_once(model,teams, groups, matches, match_codes, given, printing=False):
         pool = ord(code[0]) > 64
         m = {'date': match['date'], 'match': code, 'pool': pool, 'ending':'std'}
         if code in given:
-            print("given")
             m['given'] = True
             m['gd'] = match['gd']
             m['team1'] = match['team1']
@@ -133,6 +136,36 @@ def account_for_history(model, matches, teams):
             model.account_for((l1, l2, score))
     #model.print(teams)
 
+def print_results(results, matches, groups, teams, team_group_score):
+    print("Date       |    Code    | Pool | Team1             | Team2             | Score | Winner             |")
+    for m in matches:
+        code = m['match']
+        match = results[code]
+        gd = match['gd']
+        team1 = match['team1']
+        team2 = match['team2']
+        winner = ''
+        if not match['pool']:
+            winner = team1 if gd>0 else team2
+        print("{:^11}|{:^12}|{:^6}|{:^19}|{:^19}|{:^7}|{:^19}".format(
+            m['date'], code, match['pool'], team1, team2, gd, winner)
+        )
+    print()
+
+def print_team_score(team_score):
+    keys = False
+    for t, v in team_score.items():
+        if not keys:
+            keys = list(v.keys())
+            print("{:^20}|".format("Teams"), end='')
+            [print("{:^5}|".format(k), end='') for k in keys]
+            print()
+        print("{:^20}|".format(t), end='')
+        [print("{:^5d}|".format(v[k]), end='') for k in keys]
+        print()
+
+
+# Programme Principal
 n_buckets = 6
 rho = 0.5
 bucket_per_gd = 1
@@ -175,40 +208,29 @@ model.print(teams)
 
 probabilities = model.probabilities.copy()
 
-team_score = {team: 0 for team in teams}
+team_score = {team: {"1": 0, "1M": 0, "2": 0, "4": 0, "8": 0, "q8": 0} for team in teams}
 
-def print_results(results, matches, groups, teams, team_group_score):
-    print("Date       |    Code    | Pool | Team1             | Team2             | Score | Winner             |")
-    for m in matches:
-        code = m['match']
-        match = results[code]
-        gd = match['gd']
-        team1 = match['team1']
-        team2 = match['team2']
-        winner = ''
-        if not match['pool']:
-            winner = team1 if gd>0 else team2
-        print("{:^11}|{:^12}|{:^6}|{:^19}|{:^19}|{:^7}|{:^19}".format(
-            m['date'], code, match['pool'], team1, team2, gd, winner)
-        )
-    print()
-
-
-for _ in range(5):
+for _ in range(1000):
     model.probabilities = probabilities.copy()
     model.update_stats()
     results, team_group_score = fire_once(model,teams, groups, matches, match_codes, given)
     print("Results")
+    print_results(results, matches, groups, teams, team_group_score)
+#    model.print(teams)
     team1, team2 = results["1"]['team1'], results["1"]['team2']
     gd = results["1"]['gd']
     winner = team1 if gd>0 else team2
     print("Finale {} / {} : {} Winner {}".format(team1, team2, gd, winner))
-    print_results(results, matches, groups, teams, team_group_score)
-    model.print(teams)
-    team_score[winner] += 1
+    for code,m in results.items():
+        c = code[0]
+        if ord(c)<65:
+            if c == "8":
+                # Les équipes ont passé les pool
+                team_score[m['team1']]['q8'] += 1
+                team_score[m['team2']]['q8'] += 1
+            if code == '1M':
+                c = '1M'
+            team_score[m['winner']][c] += 1
 
-[print(t,v) for t,v in team_score.items()]
 
-print()
-
-
+print_team_score(team_score)

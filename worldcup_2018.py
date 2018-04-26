@@ -154,17 +154,34 @@ def print_results(results, matches, groups, teams, team_group_score):
         )
     print()
 
-def print_team_score(team_score):
+def print_team_score(team_score, n_tir):
     keys = False
     for t, v in team_score.items():
         if not keys:
             keys = list(v.keys())
             print("{:^20}|".format("Teams"), end='')
             [print("{:^5}|".format(k), end='') for k in keys]
+            [print("{:^7}|".format("p"+ k), end='') for k in keys]
+            [print("{:^7}|".format("c"+ k), end='') for k in keys]
             print()
         print("{:^20}|".format(t), end='')
         [print("{:^5d}|".format(v[k]), end='') for k in keys]
+        [print("{:^7.1f}|".format(v[k]/n_tir * 100), end='') for k in keys]
+        [print("{:^7.1f}|".format(n_tir / v[k] if v[k] > 0 else 0), end='') for k in keys]
         print()
+
+def print_pool_result_stats(stats, n_tir):
+    print("Date       |    Code    | Team1             | Team2             |  1  |  N  |  2  |  p1   |  pN   |  p2   |  c1   |  cN   |  C2   ")
+    for code, match in stats.items():
+        team1 = match['team1']
+        team2 = match['team2']
+        m1, mn, m2 = match['1'], match['N'], match['2']
+        print("{:^11}|{:^12}|{:^19}|{:^19}|{:^5}|{:^5d}|{:^5d}|{:^7.1f}|{:^7.1f}|{:^7.1f}|{:^7.1f}|{:^7.1f}|{:^7.1f}|".format(
+            match['date'], code, team1, team2, m1, mn, m2,
+            100 * m1/n_tir, 100 * mn / n_tir, 100 * m2/n_tir,
+            n_tir / m1 if m1 > 0 else 0, n_tir / mn  if mn > 0 else 0, n_tir / m2 if m2 > 0 else 0)
+        )
+    print()
 
 
 # Programme Principal
@@ -199,8 +216,6 @@ for team in elo_scores.keys():
     proba = {k:v/s for k,v in proba.items()}
     probabilities[team] = proba
 
-
-
 model = Model_base(n_people, n_buckets, s_max=floor((2*n_buckets+1)/bucket_per_gd)+1, options={'rho': rho, 'bucket_per_gd': bucket_per_gd} )
 # récupère les etats historiques
 model.probabilities = [probabilities[teams[i]] for i in range(len(model.probabilities))]
@@ -211,8 +226,11 @@ model.print(teams)
 probabilities = model.probabilities.copy()
 
 team_score = {team: {"1": 0, "1M": 0, "2": 0, "4": 0, "8": 0, "q8": 0} for team in teams}
-
-for _ in range(10000):
+pool_match_stats = {m['match'] : {'date': m['date'], 'team1':m['team1'], 'team2':m['team2'], '1':0, 'N':0, '2':0}
+                  for m in matches if ord(m['match'][0]) > 64}
+n_tir = 0
+for _ in range(3):
+    n_tir += 1
     model.probabilities = probabilities.copy()
     model.update_stats()
     results, team_group_score = fire_once(model,teams, groups, matches, match_codes, given)
@@ -223,7 +241,8 @@ for _ in range(10000):
     gd = results["1"]['gd']
     winner = team1 if gd > 0 else team2
     print("Finale {} / {} : {} Winner {}".format(team1, team2, gd, winner))
-    for code,m in results.items():
+    # Mise à jour des résultats post-poules
+    for code, m in results.items():
         c = code[0]
         if ord(c)<65:
             if c == "8":
@@ -233,5 +252,16 @@ for _ in range(10000):
             if code == '1M':
                 c = '1M'
             team_score[m['winner']][c] += 1
+    # Mise à jour des statistiques de matches de Poules
+    for code, m in results.items():
+        if ord(code[0]) < 65:
+            continue
+        if m['gd'] > 0:
+            pool_match_stats[code]['1'] += 1
+        elif m['gd'] < 0:
+            pool_match_stats[code]['2'] += 1
+        else:
+            pool_match_stats[code]['N'] += 1
 
-print_team_score(team_score)
+print_team_score(team_score, n_tir)
+print_pool_result_stats(pool_match_stats, n_tir)

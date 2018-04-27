@@ -1,6 +1,6 @@
 from math import sqrt, floor
 import data_2014
-from model_base import Model_base, print_p, draw_ps
+from modelbayes import ModelBayes, print_p, draw_ps
 import operator
 
 
@@ -53,7 +53,7 @@ bucket_per_gd = 1
 qualification_matches = [m for m in data_2014.qualifications()]
 qualification_teams = data_2014.qualification_teams()
 n_people = len(qualification_teams)
-model_history = Model_base(n_people, n_buckets, s_max=floor((2*n_buckets+1)/bucket_per_gd)+1, options={'rho': rho, 'bucket_per_gd': bucket_per_gd} )
+model_history = ModelBayes(n_people, n_buckets, s_max=floor((2 * n_buckets + 1) / bucket_per_gd) + 1, options={'rho': rho, 'bucket_per_gd': bucket_per_gd})
 account_for_history(model_history, qualification_matches, qualification_teams)
 
 '''
@@ -74,7 +74,7 @@ probabilities = {qualification_teams[i] : prob for i,prob in enumerate(model_his
 
 
 
-model = Model_base(n_people, n_buckets, s_max=floor((2*n_buckets+1)/bucket_per_gd)+1, options={'rho': rho, 'bucket_per_gd': bucket_per_gd} )
+model = ModelBayes(n_people, n_buckets, s_max=floor((2 * n_buckets + 1) / bucket_per_gd) + 1, options={'rho': rho, 'bucket_per_gd': bucket_per_gd})
 # récupère les etats historiques
 model.probabilities = [probabilities[teams[i]] for i in range(len(model.probabilities))]
 model.update_stats()

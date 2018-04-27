@@ -130,6 +130,42 @@ def elo_scores():
         'Saudi Arabia': 1568,
     }
 
+def fifa_scores():
+    return {
+        'Germany':1533,
+        'Brazil': 1384,
+        'Belgium': 1346,
+        'Portugal': 1306,
+        'Argentina': 1254,
+        'Switzerland': 1179,
+        'France': 1166,
+        'Spain': 1162,
+        'Poland': 1118,
+        'Peru': 1106,
+        'Denmark': 1054,
+        'England':1040,
+        'Tunisia': 1012,
+        'Mexico': 1008,
+        'Colombia': 989,
+        'Uruguay':976,
+        'Croatia': 975,
+        'Iceland': 930,
+        'Sweden': 889,
+        'Costa Rica': 858,
+        'Senegal': 825,
+        'Serbia': 732,
+        'Iran': 727,
+        'Australia': 700,
+        'Morocco': 681,
+        'Egypt': 636,
+        'Nigeria': 635,
+        'Panama': 575,
+        'Japan': 528,
+        'Korean Republic': 520,
+        'Russia': 493,
+        'Saudi Arabia': 445,
+    }
+
 
 def qualification_teams():
     t = set(r['team1'] for r in matches()) | set(r['team2'] for r in qualifications())

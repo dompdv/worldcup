@@ -1,7 +1,7 @@
 from math import sqrt, floor
 import operator
 import data_2014
-from model_base import Model_base, print_p, draw_ps
+from modelbayes import ModelBayes, print_p, draw_ps
 import random
 import collections
 
@@ -199,7 +199,7 @@ for team in elo_scores.keys():
 
 
 
-model = Model_base(n_people, n_buckets, s_max=floor((2*n_buckets+1)/bucket_per_gd)+1, options={'rho': rho, 'bucket_per_gd': bucket_per_gd} )
+model = ModelBayes(n_people, n_buckets, s_max=floor((2 * n_buckets + 1) / bucket_per_gd) + 1, options={'rho': rho, 'bucket_per_gd': bucket_per_gd})
 # récupère les etats historiques
 model.probabilities = [probabilities[teams[i]] for i in range(len(model.probabilities))]
 model.update_stats()

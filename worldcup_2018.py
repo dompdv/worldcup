@@ -1,9 +1,7 @@
-from math import sqrt, floor
-import operator
+from math import floor
 import data_2018
-from model_base import Model_base, print_p, draw_ps
+from modelbayes import ModelBayes, print_p, draw_ps
 import random
-import collections
 
 def fire_once(model,teams, groups, matches, match_codes, given, printing=False):
     # Calcule le match suivant après les pools
@@ -197,13 +195,18 @@ groups = data_2018.groups()
 n_people = len(teams)
 
 elo_scores = data_2018.elo_scores()
-# Ai calculé que 500 points correspondent à 3 points d'ecart au total
+#elo_scores = data_2018.fifa_scores()
 max_elo_score = max(elo_scores.values())
 min_elo_score = min(elo_scores.values())
 delta_elo = max_elo_score - min_elo_score
 mean_elo = (max_elo_score + min_elo_score) / 2.0
 # On repositionne linéirement les Ecarts en fonction du ELO
-elo_scores = {k: (v - mean_elo) * 2.5 / 500 for k,v in elo_scores.items()}
+
+# ELO Ai calculé que 500 points correspondent à 3 points d'ecart au total
+elo_scores = {k: (v - mean_elo) * 3 / 500 for k,v in elo_scores.items()}
+
+# FIFA Scores Ai calculé que 500 points correspondent à 3 points d'ecart au total
+#elo_scores = {k: (v - mean_elo) * 3 / 1100 for k,v in elo_scores.items()}
 
 def elo_function(avg, x):
     return 0.1 ** (abs(x-avg))
@@ -216,7 +219,7 @@ for team in elo_scores.keys():
     proba = {k:v/s for k,v in proba.items()}
     probabilities[team] = proba
 
-model = Model_base(n_people, n_buckets, s_max=floor((2*n_buckets+1)/bucket_per_gd)+1, options={'rho': rho, 'bucket_per_gd': bucket_per_gd} )
+model = ModelBayes(n_people, n_buckets, s_max=floor((2 * n_buckets + 1) / bucket_per_gd) + 1, options={'rho': rho, 'bucket_per_gd': bucket_per_gd})
 # récupère les etats historiques
 model.probabilities = [probabilities[teams[i]] for i in range(len(model.probabilities))]
 model.update_stats()
@@ -229,14 +232,14 @@ team_score = {team: {"1": 0, "1M": 0, "2": 0, "4": 0, "8": 0, "q8": 0} for team 
 pool_match_stats = {m['match'] : {'date': m['date'], 'team1':m['team1'], 'team2':m['team2'], '1':0, 'N':0, '2':0}
                   for m in matches if ord(m['match'][0]) > 64}
 n_tir = 0
-for _ in range(3):
+for _ in range(10):
     n_tir += 1
+    print("Shot n:{}".format(n_tir))
     model.probabilities = probabilities.copy()
     model.update_stats()
     results, team_group_score = fire_once(model,teams, groups, matches, match_codes, given)
-    print("Results")
-    print_results(results, matches, groups, teams, team_group_score)
-#    model.print(teams)
+    #print_results(results, matches, groups, teams, team_group_score)
+    #model.print(teams)
     team1, team2 = results["1"]['team1'], results["1"]['team2']
     gd = results["1"]['gd']
     winner = team1 if gd > 0 else team2
@@ -263,5 +266,7 @@ for _ in range(3):
         else:
             pool_match_stats[code]['N'] += 1
 
+
+model.print(teams)
 print_team_score(team_score, n_tir)
 print_pool_result_stats(pool_match_stats, n_tir)

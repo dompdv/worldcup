@@ -1,20 +1,26 @@
 import random
 import statistics
+import numpy as np
 
-class ModelBayes:
+
+class ModelBayesFast:
     def __init__(self, n_people, n_buckets, s_max, options):
         self.n_people = n_people
         self.n_buckets = n_buckets
-        self.proba_win_function = self.compute_probability_function(n_buckets, s_max, options)
+        self.buckets = np.arange(-n_buckets, n_buckets + 1)
+        self.buckets_total = 2 * n_buckets + 1
         self.s_max = s_max
+        self.s_max_total = 2 * s_max + 1
+        self.scores = np.arange(-s_max, s_max + 1)
         self.options = options
+        self.proba_table = self.compute_proba_table(n_buckets, s_max, options)
         self.initializor = {i: 1/(2*n_buckets + 1) for i in range(-n_buckets, n_buckets + 1)}
-        self.probabilities = [self.initializor.copy() for _ in range(n_people)]
+        self.probabilities = [ 1/self.buckets_total * np.ones((self.buckets_total,)) for _ in range(n_people)]
         self.esperance = []
         self.mean = 0
         self.update_stats()
 
-    def compute_probability_function(self, n_buckets, s_max, options):
+    def compute_proba_table(self, n_buckets, s_max, options):
         def fn(l1, l2, s, rho, bpgd):
             ecart = int(abs((l1 - l2)/bpgd - s))
             if ecart > 5:
@@ -32,17 +38,13 @@ class ModelBayes:
         for (l1, l2, _), p in triplet.items():
             sums[(l1, l2)] += p
         triplet = {(l1, l2, s): v / sums[(l1, l2)] for (l1, l2, s), v in triplet.items()}
-        return triplet
-
-    def proba_win(self, level_user1, level_user2, score):
-        if abs(score) > self.s_max:
-            return 0.00001
-        return self.proba_win_function[level_user1, level_user2, score]
+        np_triplet = np.zeros((self.s_max_total, self.buckets_total, self.buckets_total))
+        for (l1, l2, s), v in triplet.items():
+            np_triplet[s + self.s_max][l1 + self.n_buckets][l2 + self.n_buckets] = v
+        return np_triplet
 
     def update_stats(self):
-        self.esperance = [sum(bucket * self.probabilities[people][bucket]
-                              for bucket in range(-self.n_buckets, self.n_buckets + 1))
-                          for people in range(self.n_people)]
+        self.esperance = [np.sum(self.buckets * self.probabilities[people]) for people in range(self.n_people)]
         self.mean = statistics.mean(self.esperance)
 
     def adjust_mean(self):
@@ -50,17 +52,18 @@ class ModelBayes:
         if shift == 0:
             return
         for people, probability in enumerate(self.probabilities):
-            new_values = list(probability.values())
-            new_values = new_values[shift:] + new_values[:shift]
-            self.probabilities[people] = {k: new_values[i] for i, k in enumerate(probability.keys())}
+            new_values = np.zeros(probability.shape)
+            l = len(new_values)
+            self.probabilities[people][:l - shift] = new_values[shift:]
+            self.probabilities[people][l - shift:] = new_values[:shift]
         self.update_stats()
 
     def proba_score(self, user_1, user_2):
+        p_user1 = self.probabilities[user_1]
+        p_user1.shape = (len(p_user1), 1)
+        p_user2 = self.probabilities[user_2]
         return {
-            s: sum(self.proba_win(i, j, s) * self.probabilities[user_1][i] * self.probabilities[user_2][j]
-                   for i in range(-self.n_buckets, self.n_buckets + 1)
-                   for j in range(-self.n_buckets, self.n_buckets + 1))
-            for s in range(-self.s_max, self.s_max + 1)
+            s: np.sum(self.proba_table[s + self.s_max] * p_user1 * p_user2) for s in range(-self.s_max, self.s_max + 1)
         }
 
     def print(self, teams, keep=set()):
@@ -77,9 +80,9 @@ class ModelBayes:
             print("{0:^25}".format(teams[people]), end="")
             print("{0:^5}".format(people), end="")
             for bucket in range(-self.n_buckets, self.n_buckets + 1):
-                print("{0:^4.1f} | ".format(100 * self.probabilities[people][bucket]), end='')
-                total += 100 * self.probabilities[people][bucket]
-                average += self.probabilities[people][bucket] * bucket
+                print("{0:^4.1f} | ".format(100 * self.probabilities[people][bucket + self.n_buckets]), end='')
+                total += 100 * self.probabilities[people][bucket + self.n_buckets]
+                average += self.probabilities[people][bucket + self.n_buckets] * bucket
             print("{0:^4.1f} | ".format(total), end='')
             print("{0:^4.1f} | ".format(average), end='')
             print()
@@ -87,21 +90,16 @@ class ModelBayes:
 
     def account_for(self, d):
         user_1, user_2, score = d
-        probabilities = {
-            (i, j): self.proba_win(i, j, score) * self.probabilities[user_1][i] * self.probabilities[user_2][j]
-            for i in range(-self.n_buckets, self.n_buckets + 1)
-            for j in range(-self.n_buckets, self.n_buckets + 1)}
+        p_user1 = self.probabilities[user_1]
+        p_user1.shape = (len(p_user1), 1)
+        p_user2 = self.probabilities[user_2]
+        probabilities = self.proba_table[score + self.s_max] * p_user1 * p_user2
         # normalize
-        s = sum(v for v in probabilities.values())
-        probabilities = {k: v/s for k, v in probabilities.items()}
-
+        s = np.sum(probabilities)
+        probabilities = probabilities / s
         # accumulate probabilities per user
-        probabilities_cumulated = [{i: 0 for i in range(-self.n_buckets, self.n_buckets + 1)} for _ in range(2)]
-        for (i, j), p in probabilities.items():
-            probabilities_cumulated[0][i] += p
-            probabilities_cumulated[1][j] += p
-        self.probabilities[user_1] = probabilities_cumulated[0]
-        self.probabilities[user_2] = probabilities_cumulated[1]
+        self.probabilities[user_1] = np.sum(probabilities, axis = 1)
+        self.probabilities[user_2] = np.sum(probabilities, axis = 0)
         self.update_stats()
         self.adjust_mean()
 

@@ -1,7 +1,8 @@
 from math import floor
 import data_2018
-from modelbayes import ModelBayes, print_p, draw_ps
+from modelbayesfast import ModelBayesFast, print_p, draw_ps
 import random
+import numpy as np
 
 def fire_once(model,teams, groups, matches, match_codes, given, printing=False):
     # Calcule le match suivant après les pools
@@ -219,9 +220,9 @@ for team in elo_scores.keys():
     proba = {k:v/s for k,v in proba.items()}
     probabilities[team] = proba
 
-model = ModelBayes(n_people, n_buckets, s_max=floor((2 * n_buckets + 1) / bucket_per_gd) + 1, options={'rho': rho, 'bucket_per_gd': bucket_per_gd})
+model = ModelBayesFast(n_people, n_buckets, s_max=floor((2 * n_buckets + 1) / bucket_per_gd) + 1, options={'rho': rho, 'bucket_per_gd': bucket_per_gd})
 # récupère les etats historiques
-model.probabilities = [probabilities[teams[i]] for i in range(len(model.probabilities))]
+model.probabilities = [np.array(list(probabilities[teams[i]].values())) for i in range(len(model.probabilities))]
 model.update_stats()
 model.adjust_mean()
 model.print(teams)

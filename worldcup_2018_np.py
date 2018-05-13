@@ -233,7 +233,7 @@ team_score = {team: {"1": 0, "1M": 0, "2": 0, "4": 0, "8": 0, "q8": 0} for team 
 pool_match_stats = {m['match'] : {'date': m['date'], 'team1':m['team1'], 'team2':m['team2'], '1':0, 'N':0, '2':0}
                   for m in matches if ord(m['match'][0]) > 64}
 n_tir = 0
-for _ in range(1000):
+for _ in range(10000):
     n_tir += 1
     print("Shot n:{}".format(n_tir))
     model.probabilities = probabilities.copy()

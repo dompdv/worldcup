@@ -1,10 +1,10 @@
 
 def matches():
     return [
-        {'date': '2018-06-14', 'group': 'A', 'match': 'A1', 'team1': 'Russia', 'team2': 'Saudi Arabia'},
-        {'date': '2018-06-15', 'group': 'B', 'match': 'B1', 'team1': 'Morocco', 'team2': 'Iran'},
-        {'date': '2018-06-15', 'group': 'B', 'match': 'B2', 'team1': 'Portugal', 'team2': 'Spain'},
-        {'date': '2018-06-15', 'group': 'A', 'match': 'A2', 'team1': 'Egypt', 'team2': 'Uruguay'},
+        {'date': '2018-06-14', 'group': 'A', 'match': 'A1', 'team1': 'Russia', 'team2': 'Saudi Arabia', 'gd': 5},
+        {'date': '2018-06-15', 'group': 'B', 'match': 'B1', 'team1': 'Morocco', 'team2': 'Iran', 'gd': -1},
+        {'date': '2018-06-15', 'group': 'A', 'match': 'A2', 'team1': 'Egypt', 'team2': 'Uruguay', 'gd': -1},
+        {'date': '2018-06-15', 'group': 'B', 'match': 'B2', 'team1': 'Portugal', 'team2': 'Spain', 'gd': 0},
         {'date': '2018-06-16', 'group': 'C', 'match': 'C1', 'team1': 'France', 'team2': 'Australia'},
         {'date': '2018-06-16', 'group': 'C', 'match': 'C2', 'team1': 'Peru', 'team2': 'Denmark'},
         {'date': '2018-06-16', 'group': 'D', 'match': 'D1', 'team1': 'Argentina', 'team2': 'Iceland'},

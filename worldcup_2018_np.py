@@ -240,7 +240,7 @@ model = ModelBayesFast(n_people, n_buckets, s_max=floor((2 * n_buckets + 1) / bu
 model.probabilities = [np.array(list(probabilities[teams[i]].values())) for i in range(len(model.probabilities))]
 model.update_stats()
 model.adjust_mean()
-model.print(teams)
+#model.print(teams)
 
 probabilities = model.probabilities.copy()
 
@@ -249,7 +249,7 @@ pool_match_stats = {m['match'] : {'date': m['date'], 'team1':m['team1'], 'team2'
                   for m in matches if ord(m['match'][0]) > 64}
 pool_winner_stats = [{group: {country:0 for country in countries} for group, countries in groups.items()} for _ in range(2)]
 n_tir = 0
-for _ in range(100):
+for _ in range(10000):
     n_tir += 1
     print("Shot n:{}".format(n_tir))
     model.probabilities = probabilities.copy()
@@ -289,7 +289,7 @@ for _ in range(100):
             pool_match_stats[code]['N'] += 1
 
 
-model.print(teams)
+#model.print(teams)
 print_team_score(team_score, n_tir)
 print_pool_result_stats(pool_match_stats, n_tir)
 print_group_winner_stats(pool_winner_stats, n_tir, groups)

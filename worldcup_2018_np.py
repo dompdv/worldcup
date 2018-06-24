@@ -47,6 +47,7 @@ def fire_once(model,teams, groups, matches, match_codes, given, printing=False):
     numbered_teams ={ team:number for number,team in enumerate(teams)}
     team_group_score = { team: {'points': 0, 'gd': 0} for team in teams}
     results = {}
+    ffirst = True
     for match in matches:
         code = match['match']
         pool = ord(code[0]) > 64
@@ -61,6 +62,10 @@ def fire_once(model,teams, groups, matches, match_codes, given, printing=False):
             score = m['gd']
             model.account_for((team1, team2, score))
         else:
+            if ffirst:
+                #print("Not given")
+                #model.print(teams)
+                ffirst = False
             m['given'] = False
             # Determination des équipes
             if pool:

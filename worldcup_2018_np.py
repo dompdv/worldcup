@@ -189,6 +189,24 @@ def print_pool_result_stats(stats, n_tir):
         )
     print()
 
+
+def print_pool_result_stats(stats, n_tir):
+    print("Date       |    Code    | Team1             | Team2             |  1  |  N  |  2  |  p1   |  pN   |  p2   |  c1   |  cN   |  C2   |  1G   |  2G   |")
+    for code, match in stats.items():
+        team1 = match['team1']
+        team2 = match['team2']
+        m1, mn, m2 = match['1'], match['N'], match['2']
+        g1, g2 = match['1GD'], match['2GD']
+        print("{:^11}|{:^12}|{:^19}|{:^19}|{:^5}|{:^5d}|{:^5d}|{:^7.1f}|{:^7.1f}|{:^7.1f}|{:^7.1f}|{:^7.1f}|{:^7.1f}|{:^7.1f}|{:^7.1f}|".format(
+            match['date'], code, team1, team2, m1, mn, m2,
+            100 * m1/n_tir, 100 * mn / n_tir, 100 * m2/n_tir,
+            n_tir / m1 if m1 > 0 else 0, n_tir / mn  if mn > 0 else 0, n_tir / m2 if m2 > 0 else 0,
+            g1 / m1 if m1 > 0 else 0, g2 / m2 if m2 > 0 else 0)
+        )
+    print()
+
+
+
 def print_group_winner_stats(winners, n_tir, groups):
     for group in "ABCDEFGH":
         countries = sorted(groups[group])
@@ -252,6 +270,8 @@ probabilities = model.probabilities.copy()
 team_score = {team: {"1": 0, "1M": 0, "2": 0, "4": 0, "8": 0, "q8": 0} for team in teams}
 pool_match_stats = {m['match'] : {'date': m['date'], 'team1':m['team1'], 'team2':m['team2'], '1':0, 'N':0, '2':0, '1GD':0, '2GD':0}
                   for m in matches if ord(m['match'][0]) > 64}
+post_pool_match_stats = None
+
 pool_winner_stats = [{group: {country:0 for country in countries} for group, countries in groups.items()} for _ in range(2)]
 n_tir = 0
 for _ in range(10000):
@@ -260,6 +280,13 @@ for _ in range(10000):
     model.probabilities = probabilities.copy()
     model.update_stats()
     results, team_group_score = fire_once(model,teams, groups, matches, match_codes, given)
+    if post_pool_match_stats is None:
+        post_pool_match_stats = {
+            m['match']: {'date': m['date'], 'team1': results[m['match']]['team1'], 'team2': results[m['match']]['team2'],
+                         '1': 0, 'N': 0, '2': 0, '1GD': 0, '2GD': 0}
+            for m in matches if m['match'][0] == '8'}
+
+
     #print_results(results, matches, groups, teams, team_group_score)
     #model.print(teams)
     team1, team2 = results["1"]['team1'], results["1"]['team2']
@@ -293,8 +320,21 @@ for _ in range(10000):
         else:
             pool_match_stats[code]['N'] += 1
 
+    # Mise à jour des statistiques de matches post Pools
+    for code, m in results.items():
+        if code[0] != '8':
+            continue
+        if m['gd'] > 0:
+            post_pool_match_stats[code]['1'] += 1
+            post_pool_match_stats[code]['1GD'] += m['gd']
+        elif m['gd'] < 0:
+            post_pool_match_stats[code]['2'] += 1
+            post_pool_match_stats[code]['2GD'] -= m['gd']
+        else:
+            post_pool_match_stats[code]['N'] += 1
 
 #model.print(teams)
 print_team_score(team_score, n_tir)
-print_pool_result_stats(pool_match_stats, n_tir)
-print_group_winner_stats(pool_winner_stats, n_tir, groups)
+#print_pool_result_stats(pool_match_stats, n_tir)
+print_pool_result_stats(post_pool_match_stats, n_tir)
+#print_group_winner_stats(pool_winner_stats, n_tir, groups)

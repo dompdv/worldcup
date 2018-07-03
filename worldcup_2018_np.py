@@ -1,19 +1,20 @@
 from math import floor
 import data_2018
-from modelbayesfast import ModelBayesFast, print_p, draw_ps
+from modelbayesfast import ModelBayesFast, draw_ps
 import random
 import numpy as np
 
-def fire_once(model,teams, groups, matches, match_codes, given, printing=False):
+
+def fire_once(model, teams, groups, matches, match_codes, given, printing=False):
     # Calcule le match suivant après les pools
     def find_next_match(code, results, team_group_score):
         def group_winner(group, position):
             def order_teams(t):
-                return (t[1]['points'], t[1]['gd'])
+                return t[1]['points'], t[1]['gd']
             g_scores = {team: team_group_score[team] for team in groups[group]}
             sorted_g = sorted(g_scores.items(), key=order_teams)
-            team, _ = sorted_g[-position]
-            return team
+            t, _ = sorted_g[-position]
+            return t
 
         def match_winner(result):
             return result['team1'] if result['gd'] > 0 else result['team2']
@@ -21,21 +22,22 @@ def fire_once(model,teams, groups, matches, match_codes, given, printing=False):
         def match_loser(result):
             return result['team2'] if result['gd'] > 0 else result['team1']
 
+        winning_team1, winning_team2 = None, None
         if code[0] == "8":
-            team1, team2 = group_winner(code[1],1), group_winner(code[2], 2)
+            winning_team1, winning_team2 = group_winner(code[1], 1), group_winner(code[2], 2)
 
         if code[0] == "4":
-            team1, team2 = match_winner(results["8" + code[1:3]]), match_winner(results["8" + code[3:]])
+            winning_team1, winning_team2 = match_winner(results["8" + code[1:3]]), match_winner(results["8" + code[3:]])
 
         if code[0] == "2":
-            team1, team2 = match_winner(results["4" + code[1:5]]), match_winner(results["4" + code[5:]])
+            winning_team1, winning_team2 = match_winner(results["4" + code[1:5]]), match_winner(results["4" + code[5:]])
 
         if code == "1":
-            team1, team2 = match_winner(results["2ABCDDCBA"]), match_winner(results["2EFGHFEHG"])
+            winning_team1, winning_team2 = match_winner(results["2ABCDDCBA"]), match_winner(results["2EFGHFEHG"])
 
         if code == "1M":
-            team1, team2 = match_loser(results["2ABCDDCBA"]), match_loser(results["2EFGHFEHG"])
-        return team1, team2
+            winning_team1, winning_team2 = match_loser(results["2ABCDDCBA"]), match_loser(results["2EFGHFEHG"])
+        return winning_team1, winning_team2
     '''
         # garde tous les matchs de pool
         for c in list(given.keys()):
@@ -44,8 +46,8 @@ def fire_once(model,teams, groups, matches, match_codes, given, printing=False):
                 del given[c]
         #given = {}
     '''
-    numbered_teams ={ team:number for number,team in enumerate(teams)}
-    team_group_score = { team: {'points': 0, 'gd': 0} for team in teams}
+    numbered_teams = {t: number for number, t in enumerate(teams)}
+    team_group_score = {t: {'points': 0, 'gd': 0} for t in teams}
     results = {}
     ffirst = True
     for match in matches:
@@ -168,11 +170,12 @@ def print_team_score(team_score, n_tir):
             [print("{:^7}|".format("p"+ k), end='') for k in keys]
             [print("{:^7}|".format("c"+ k), end='') for k in keys]
             print()
-        print("{:^20}|".format(t), end='')
-        [print("{:^5d}|".format(v[k]), end='') for k in keys]
-        [print("{:^7.1f}|".format(v[k]/n_tir * 100), end='') for k in keys]
-        [print("{:^7.1f}|".format(n_tir / v[k] if v[k] > 0 else 0), end='') for k in keys]
-        print()
+        if v['1'] > 0:
+            print("{:^20}|".format(t), end='')
+            [print("{:^5d}|".format(v[k]), end='') for k in keys]
+            [print("{:^7.1f}|".format(v[k]/n_tir * 100), end='') for k in keys]
+            [print("{:^7.1f}|".format(n_tir / v[k] if v[k] > 0 else 0), end='') for k in keys]
+            print()
 
 def print_pool_result_stats(stats, n_tir):
     print("Date       |    Code    | Team1             | Team2             |  1  |  N  |  2  |  p1   |  pN   |  p2   |  c1   |  cN   |  C2   |  1G   |  2G   |")
@@ -234,7 +237,7 @@ groups = data_2018.groups()
 n_people = len(teams)
 
 elo_scores = data_2018.elo_scores()
-#elo_scores = data_2018.fifa_scores()
+# elo_scores = data_2018.fifa_scores()
 max_elo_score = max(elo_scores.values())
 min_elo_score = min(elo_scores.values())
 delta_elo = max_elo_score - min_elo_score
@@ -245,7 +248,7 @@ mean_elo = (max_elo_score + min_elo_score) / 2.0
 elo_scores = {k: (v - mean_elo) * 3 / 500 for k,v in elo_scores.items()}
 
 # FIFA Scores Ai calculé que 500 points correspondent à 3 points d'ecart au total
-#elo_scores = {k: (v - mean_elo) * 3 / 1100 for k,v in elo_scores.items()}
+# elo_scores = {k: (v - mean_elo) * 3 / 1100 for k,v in elo_scores.items()}
 
 def elo_function(avg, x):
     return 0.1 ** (abs(x-avg))
@@ -263,7 +266,7 @@ model = ModelBayesFast(n_people, n_buckets, s_max=floor((2 * n_buckets + 1) / bu
 model.probabilities = [np.array(list(probabilities[teams[i]].values())) for i in range(len(model.probabilities))]
 model.update_stats()
 model.adjust_mean()
-#model.print(teams)
+model.print(teams)
 
 probabilities = model.probabilities.copy()
 
@@ -274,29 +277,37 @@ post_pool_match_stats = None
 
 pool_winner_stats = [{group: {country:0 for country in countries} for group, countries in groups.items()} for _ in range(2)]
 n_tir = 0
-for _ in range(10000):
+for _ in range(100):
     n_tir += 1
-    print("Shot n:{}".format(n_tir))
+    if n_tir % 100 == 1:
+        print("Shot n:{}".format(n_tir))
     model.probabilities = probabilities.copy()
     model.update_stats()
     results, team_group_score = fire_once(model,teams, groups, matches, match_codes, given)
     if post_pool_match_stats is None:
         post_pool_match_stats = {
-            m['match']: {'date': m['date'], 'team1': results[m['match']]['team1'], 'team2': results[m['match']]['team2'],
-                         '1': 0, 'N': 0, '2': 0, '1GD': 0, '2GD': 0}
+            m['match']: {
+                'date': m['date'],
+                'team1': results[m['match']]['team1'],
+                'team2': results[m['match']]['team2'],
+                '1': 0,
+                'N': 0,
+                '2': 0,
+                '1GD': 0,
+                '2GD': 0
+            }
             for m in matches if m['match'][0] == '8'}
 
-
-    #print_results(results, matches, groups, teams, team_group_score)
-    #model.print(teams)
-    team1, team2 = results["1"]['team1'], results["1"]['team2']
+    # print_results(results, matches, groups, teams, team_group_score)
+    # model.print(teams)
+    w_team1, w_team2 = results["1"]['team1'], results["1"]['team2']
     gd = results["1"]['gd']
-    winner = team1 if gd > 0 else team2
-    print("Finale {} / {} : {} Winner {}".format(team1, team2, gd, winner))
+    winner = w_team1 if gd > 0 else w_team2
+    # print("Finale {} / {} : {} Winner {}".format(w_team1, w_team2, gd, winner))
     # Mise à jour des résultats post-poules
     for code, m in results.items():
         c = code[0]
-        if ord(c)<65:
+        if ord(c) < 65:
             if c == "8":
                 # Les équipes ont passé les pool
                 team_score[m['team1']]['q8'] += 1

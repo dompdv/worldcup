@@ -17,10 +17,10 @@ def fire_once(model,teams, groups, matches, match_codes, given, printing=False):
             return team
 
         def match_winner(result):
-            return result['team1'] if result['gd'] > 0 else result['team2']
+            return result['w_team1'] if result['gd'] > 0 else result['w_team2']
 
         def match_loser(result):
-            return result['team2'] if result['gd'] > 0 else result['team1']
+            return result['w_team2'] if result['gd'] > 0 else result['w_team1']
 
         if code[0] == "8":
             team1, team2 = group_winner(code[1],1), group_winner(code[2], 2)
@@ -53,23 +53,23 @@ def fire_once(model,teams, groups, matches, match_codes, given, printing=False):
         if code in given:
             m['given'] = True
             m['gd'] = match['gd']
-            m['team1'] = match['team1']
-            m['team2'] = match['team2']
-            team1 = numbered_teams[m['team1']]
-            team2 = numbered_teams[m['team2']]
+            m['w_team1'] = match['w_team1']
+            m['w_team2'] = match['w_team2']
+            team1 = numbered_teams[m['w_team1']]
+            team2 = numbered_teams[m['w_team2']]
             score = m['gd']
             model.account_for((team1, team2, score))
         else:
             m['given'] = False
             # Determination des équipes
             if pool:
-                m['team1'] = match['team1']
-                m['team2'] = match['team2']
+                m['w_team1'] = match['w_team1']
+                m['w_team2'] = match['w_team2']
             else:
-                m['team1'], m['team2'] = find_next_match(code, results, team_group_score)
+                m['w_team1'], m['w_team2'] = find_next_match(code, results, team_group_score)
 
-            team1 = numbered_teams[m['team1']]
-            team2 = numbered_teams[m['team2']]
+            team1 = numbered_teams[m['w_team1']]
+            team2 = numbered_teams[m['w_team2']]
             # Determination du score
             proba = model.proba_score(team1, team2)
             m['proba'] = proba
@@ -88,24 +88,24 @@ def fire_once(model,teams, groups, matches, match_codes, given, printing=False):
             m['gd'] = score
             model.account_for((team1, team2, score))
         if score > 0:
-            m['winner'] = m['team1']
+            m['winner'] = m['w_team1']
         elif score < 0:
-            m['winner'] = m['team2']
+            m['winner'] = m['w_team2']
         else:
             m['winner'] = None
         # Gestion des points la phase Pool
         if pool:
             if score > 0:
-                team_group_score[m['team1']]['points'] += 3
-                team_group_score[m['team1']]['gd'] += score
+                team_group_score[m['w_team1']]['points'] += 3
+                team_group_score[m['w_team1']]['gd'] += score
             elif score == 0:
-                team_group_score[m['team1']]['points'] += 1
-                team_group_score[m['team2']]['points'] += 1
+                team_group_score[m['w_team1']]['points'] += 1
+                team_group_score[m['w_team2']]['points'] += 1
             else:
-                team_group_score[m['team2']]['points'] += 3
-                team_group_score[m['team2']]['gd'] += (-score)
-            m['team1_score'] = team_group_score[m['team1']]['points']
-            m['team2_score'] = team_group_score[m['team2']]['points']
+                team_group_score[m['w_team2']]['points'] += 3
+                team_group_score[m['w_team2']]['gd'] += (-score)
+            m['team1_score'] = team_group_score[m['w_team1']]['points']
+            m['team2_score'] = team_group_score[m['w_team2']]['points']
         if printing:
             print(m)
             model.print(teams)
@@ -117,8 +117,8 @@ def account_for_history(model, matches, teams):
     numbered_teams ={ team:number for number,team in enumerate(teams)}
     filtered = set()
     for i, match in enumerate(matches):
-        l1 = numbered_teams[match['team1']]
-        l2 = numbered_teams[match['team2']]
+        l1 = numbered_teams[match['w_team1']]
+        l2 = numbered_teams[match['w_team2']]
         score = match['gd']
         if len(filtered) > 0:
             display_list = filtered.copy()
@@ -142,8 +142,8 @@ def print_results(results, matches, groups, teams, team_group_score):
         code = m['match']
         match = results[code]
         gd = match['gd']
-        team1 = match['team1']
-        team2 = match['team2']
+        team1 = match['w_team1']
+        team2 = match['w_team2']
         winner = ''
         if not match['pool']:
             winner = team1 if gd>0 else team2
@@ -217,7 +217,7 @@ for _ in range(1000):
     print("Results")
     print_results(results, matches, groups, teams, team_group_score)
 #    model.print(teams)
-    team1, team2 = results["1"]['team1'], results["1"]['team2']
+    team1, team2 = results["1"]['w_team1'], results["1"]['w_team2']
     gd = results["1"]['gd']
     winner = team1 if gd>0 else team2
     print("Finale {} / {} : {} Winner {}".format(team1, team2, gd, winner))
@@ -226,8 +226,8 @@ for _ in range(1000):
         if ord(c)<65:
             if c == "8":
                 # Les équipes ont passé les pool
-                team_score[m['team1']]['q8'] += 1
-                team_score[m['team2']]['q8'] += 1
+                team_score[m['w_team1']]['q8'] += 1
+                team_score[m['w_team2']]['q8'] += 1
             if code == '1M':
                 c = '1M'
             team_score[m['winner']][c] += 1

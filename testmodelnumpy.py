@@ -9,8 +9,8 @@ def account_for_history(model, matches, teams):
         if ord(match['match'][0]) < 65:
             continue
         print(i, end='')
-        l1 = numbered_teams[match['team1']]
-        l2 = numbered_teams[match['team2']]
+        l1 = numbered_teams[match['w_team1']]
+        l2 = numbered_teams[match['w_team2']]
         if 'gd' in match:
             score = match['gd']
         else:

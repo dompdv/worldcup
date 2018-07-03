@@ -14,10 +14,10 @@ def fire_once(model,teams, groups, matches, match_codes, given):
         if code in given:
             print("given")
             m['gd'] = match['gd']
-            m['team1'] = match['team1']
-            m['team2'] = match['team2']
-            team1 = numbered_teams[m['team1']]
-            team2 = numbered_teams[m['team2']]
+            m['w_team1'] = match['w_team1']
+            m['w_team2'] = match['w_team2']
+            team1 = numbered_teams[m['w_team1']]
+            team2 = numbered_teams[m['w_team2']]
             score = m['gd']
             model.account_for((team1, team2, score))
             model.print(teams)
@@ -27,8 +27,8 @@ def account_for_history(model, matches, teams):
     numbered_teams ={ team:number for number,team in enumerate(teams)}
     filtered = set()
     for i, match in enumerate(matches):
-        l1 = numbered_teams[match['team1']]
-        l2 = numbered_teams[match['team2']]
+        l1 = numbered_teams[match['w_team1']]
+        l2 = numbered_teams[match['w_team2']]
         score = match['gd']
         if len(filtered) > 0:
             display_list = filtered.copy()

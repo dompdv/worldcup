@@ -67,8 +67,8 @@ class ModelBayesFast:
         }
 
     def print(self, teams, keep=set()):
-        print("Team                     ", end="")
-        print("  #  ", end="")
+        print("Team                     |", end="")
+        print("  #  |", end="")
         for bucket in range(-self.n_buckets, self.n_buckets + 1):
             print("{0:^4} | ".format(bucket), end='')
         print()
@@ -77,8 +77,8 @@ class ModelBayesFast:
                 continue
             total = 0
             average = 0
-            print("{0:^25}".format(teams[people]), end="")
-            print("{0:^5}".format(people), end="")
+            print("{0:^25}|".format(teams[people]), end="")
+            print("{0:^5}|".format(people), end="")
             for bucket in range(-self.n_buckets, self.n_buckets + 1):
                 print("{0:^4.1f} | ".format(100 * self.probabilities[people][bucket + self.n_buckets]), end='')
                 total += 100 * self.probabilities[people][bucket + self.n_buckets]

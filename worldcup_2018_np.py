@@ -33,10 +33,10 @@ def fire_once(model, teams, groups, matches, match_codes, given, printing=False)
             winning_team1, winning_team2 = match_winner(results["4" + code[1:5]]), match_winner(results["4" + code[5:]])
 
         if code == "1":
-            winning_team1, winning_team2 = match_winner(results["2ABCDDCBA"]), match_winner(results["2EFGHFEHG"])
+            winning_team1, winning_team2 = match_winner(results["2ABCDEFGH"]), match_winner(results["2FEHGDCBA"])
 
         if code == "1M":
-            winning_team1, winning_team2 = match_loser(results["2ABCDDCBA"]), match_loser(results["2EFGHFEHG"])
+            winning_team1, winning_team2 = match_loser(results["2ABCDEFGH"]), match_loser(results["2FEHGDCBA"])
         return winning_team1, winning_team2
     '''
         # garde tous les matchs de pool
@@ -266,7 +266,7 @@ model = ModelBayesFast(n_people, n_buckets, s_max=floor((2 * n_buckets + 1) / bu
 model.probabilities = [np.array(list(probabilities[teams[i]].values())) for i in range(len(model.probabilities))]
 model.update_stats()
 model.adjust_mean()
-model.print(teams)
+#model.print(teams)
 
 probabilities = model.probabilities.copy()
 
@@ -277,13 +277,15 @@ post_pool_match_stats = None
 
 pool_winner_stats = [{group: {country:0 for country in countries} for group, countries in groups.items()} for _ in range(2)]
 n_tir = 0
-for _ in range(100):
+for _ in range(5000):
     n_tir += 1
     if n_tir % 100 == 1:
         print("Shot n:{}".format(n_tir))
     model.probabilities = probabilities.copy()
     model.update_stats()
+    #model.print(teams)
     results, team_group_score = fire_once(model,teams, groups, matches, match_codes, given)
+    #model.print(teams)
     if post_pool_match_stats is None:
         post_pool_match_stats = {
             m['match']: {
@@ -296,10 +298,9 @@ for _ in range(100):
                 '1GD': 0,
                 '2GD': 0
             }
-            for m in matches if m['match'][0] == '8'}
+            for m in matches if m['match'][0] == '1'}
 
     # print_results(results, matches, groups, teams, team_group_score)
-    # model.print(teams)
     w_team1, w_team2 = results["1"]['team1'], results["1"]['team2']
     gd = results["1"]['gd']
     winner = w_team1 if gd > 0 else w_team2
@@ -333,7 +334,7 @@ for _ in range(100):
 
     # Mise à jour des statistiques de matches post Pools
     for code, m in results.items():
-        if code[0] != '8':
+        if code[0] != '1':
             continue
         if m['gd'] > 0:
             post_pool_match_stats[code]['1'] += 1

@@ -59,19 +59,18 @@ def matches():
         {'date': '2018-07-02', 'match': '8EF', 'group': '', 'team1': 'Brazil', 'team2': 'Mexico' , 'gd': 1},
         {'date': '2018-07-02', 'match': '8GH', 'group': '', 'team1': 'Belgium', 'team2': 'Japan', 'gd': 1},
         {'date': '2018-07-03', 'match': '8FE', 'group': '', 'team1': 'Sweden', 'team2': 'Switzerland', 'gd': 1},
-        {'date': '2018-07-03', 'match': '8HG', 'group': '', 'team1': 'Colombia', 'team2': 'England'},
+        {'date': '2018-07-03', 'match': '8HG', 'group': '', 'team1': 'Colombia', 'team2': 'England', 'gd': -1},
 
-        {'date': '2018-07-06', 'match': '4ABCD', 'group': ''},
-        {'date': '2018-07-06', 'match': '4DCBA', 'group': ''},
+        {'date': '2018-07-06', 'match': '4ABCD', 'group': '', 'team1': 'Uruguay', 'team2': 'France', 'gd': -2},
+        {'date': '2018-07-06', 'match': '4DCBA', 'group': '', 'team1': 'Croatia', 'team2': 'Russia', 'gd': 1},
+        {'date': '2018-07-07', 'match': '4FEHG', 'group': '', 'team1': 'Sweden', 'team2': 'England', 'gd': -2},
+        {'date': '2018-07-07', 'match': '4EFGH', 'group': '', 'team1': 'Brazil', 'team2': 'Belgium', 'gd': -1},
 
-        {'date': '2018-07-07', 'match': '4FEHG', 'group': ''},
-        {'date': '2018-07-07', 'match': '4EFGH', 'group': ''},
+        {'date': '2018-07-10', 'match': '2ABCDEFGH', 'group': '', 'team1': 'France', 'team2': 'Belgium', 'gd': 1},
+        {'date': '2018-07-11', 'match': '2FEHGDCBA', 'group': '', 'team1': 'England', 'team2': 'Croatia', 'gd': -1},
 
-        {'date': '2018-07-10', 'match': '2ABCDDCBA', 'group': ''},
-        {'date': '2018-07-11', 'match': '2EFGHFEHG', 'group': ''},
-
-        {'date': '2018-07-14', 'match': '1M', 'group': ''},
-        {'date': '2018-07-15', 'match': '1', 'group': ''},
+        {'date': '2018-07-14', 'match': '1M', 'group': '', 'team1': 'Belgium', 'team2': 'England'},
+        {'date': '2018-07-15', 'match': '1', 'group': '', 'team1': 'France', 'team2': 'Croatia'},
     ]
 
 
